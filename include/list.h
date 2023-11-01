@@ -1,6 +1,7 @@
 #ifndef LIST_H
 	#define LIST_H
 
+	const ssize_t LIST_INCREASE_CONSTANT = 2; 
 	const ssize_t START_SIZE = 5;
 
 	typedef unsigned int err_t;
@@ -8,6 +9,8 @@
 
 	#define NUMBER_PRINTF_SPEC     "%6zd"
 	#define LIST_ELEM_PRINTF_SPEC  "%6zd"
+
+	const ssize_t NEXT_PREV_POISON_VALUE = -1;
 
 	#define CHECK_LIST()															\
 	err_t return_code = list_verificator(list_ptr); 								\
@@ -64,7 +67,8 @@
 
 		INVALID_PREV_TRANSITION = 1 << 14,
 		INVALID_NEXT_TRANSITION = 1 << 15,
-		WRONG_BEFORE_POSITION   = 1 << 16
+		WRONG_BEFORE_POSITION   = 1 << 16,
+		UNABLE_TO_INCREASE_LIST = 1 << 17
 	};
 
 	err_t list_init(struct List* list_ptr, const ssize_t start_size);
@@ -89,5 +93,6 @@
 
 	err_t check_transition_arr(const ssize_t* const transition, const ssize_t start_postion, const ssize_t arr_size, enum ListErrors INVALID_TRANSITION, enum ListErrors INF_CYCLE);
 
+	err_t list_increase(struct List* list_ptr);
 
 #endif /* LIST_H */

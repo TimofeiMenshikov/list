@@ -24,11 +24,15 @@ err_t list_init(struct List* list_ptr, const ssize_t start_size)
 
 	list_ptr->tail = 0;
 
+	list_ptr->free = 0;
+
 	for (ssize_t n_data_elem = 1; n_data_elem < list_ptr->data_size; n_data_elem++)
 	{
 		(list_ptr->next)[n_data_elem] = -1;
 		(list_ptr->prev)[n_data_elem] = -1;
 	}
+
+	list_dump(list_ptr);
 
 	find_free_positions_list_with_cycle(list_ptr);
 
@@ -335,6 +339,8 @@ err_t add_elem_in_head(struct List* list_ptr, const elem_t elem)
 {
 	CHECK_LIST();
 
+	if (list_ptr->free == 0) list_increase(list_ptr);
+
 	ssize_t position = get_free_elem_pos(list_ptr);
 
 	(list_ptr->data)[position] = elem;	
@@ -364,6 +370,8 @@ err_t add_elem_in_tail(struct List* list_ptr, const elem_t elem)
 {
 	CHECK_LIST();
 
+	if (list_ptr->free == 0) list_increase(list_ptr);
+
 	ssize_t position = get_free_elem_pos(list_ptr);
 
 	(list_ptr->data)[position] = elem;
@@ -390,6 +398,8 @@ err_t add_elem_in_tail(struct List* list_ptr, const elem_t elem)
 err_t add_elem_after_position(struct List* list_ptr, elem_t elem,  const ssize_t before_position)
 {
 	CHECK_LIST();
+
+	if (list_ptr->free == 0) list_increase(list_ptr);
 
 	if ((list_ptr->prev)[before_position] < 0)
 	{
@@ -418,4 +428,58 @@ err_t add_elem_after_position(struct List* list_ptr, elem_t elem,  const ssize_t
 	(list_ptr->next)[position]  = after_position;
 
 	return return_code;
+}
+
+
+err_t list_increase(struct List* list_ptr)
+{
+	CHECK_LIST();
+
+	const ssize_t LIST_INCREASE_CONSTANT = 2;
+
+	ssize_t* old_next_arr = list_ptr->next;
+	ssize_t* old_prev_arr = list_ptr->next;
+	elem_t*  old_list_data = list_ptr->data;
+
+	list_ptr->next = (ssize_t*) realloc(list_ptr->next, LIST_INCREASE_CONSTANT * sizeof(ssize_t) * list_ptr->data_size);
+	list_ptr->prev = (ssize_t*) realloc(list_ptr->prev, LIST_INCREASE_CONSTANT * sizeof(ssize_t) * list_ptr->data_size);
+	list_ptr->data = (elem_t*)  realloc(list_ptr->data, LIST_INCREASE_CONSTANT * sizeof(elem_t)  * list_ptr->data_size);  
+
+	bool bad_return = false;
+
+	if ((list_ptr->next) == NULL)  
+	{
+		list_ptr->next = old_next_arr;
+		return_code |= UNABLE_TO_INCREASE_LIST;
+		bad_return = true;
+	}
+	if ((list_ptr->prev) == NULL)
+	{
+		list_ptr->prev = old_prev_arr;
+		return_code |= UNABLE_TO_INCREASE_LIST;
+		bad_return = true;
+	}
+	if ((list_ptr->data) == NULL)
+	{
+		list_ptr->data = old_list_data;
+		return_code |= UNABLE_TO_INCREASE_LIST;
+		bad_return = true;
+	}
+
+	if (bad_return) return return_code;
+	 
+	
+	for (ssize_t n_data_elem = list_ptr->data_size; n_data_elem < 2 * list_ptr->data_size; n_data_elem++)
+	{
+		(list_ptr->next)[n_data_elem] = NEXT_PREV_POISON_VALUE;
+		(list_ptr->prev)[n_data_elem] = NEXT_PREV_POISON_VALUE;
+		(list_ptr->data)[n_data_elem] = 0;
+	}
+
+	list_ptr->data_size *= LIST_INCREASE_CONSTANT;
+
+	find_free_positions_list_with_cycle(list_ptr);
+
+	return return_code;
+	
 }

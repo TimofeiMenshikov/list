@@ -1,0 +1,58 @@
+digraph G {
+rankdir = "LR";
+subgraph cluster0 {
+label = "struct List list [00000085dbdffbd0]";fontname="Helvetica,Arial,sans-serif";
+node [fontname="Helvetica,Arial,sans-serif" fontsize = "16" ];
+edge [fontname="Helvetica,Arial,sans-serif"];
+subgraph cluster1 {
+rankdir = "TB";
+label = "list variables"free [shape=box3d, label="free = 6"];
+head [shape=box3d, label="head = 3"];
+tail [shape=box3d, label="tail = 4"];
+}
+subgraph cluster2 {
+color = "#AA5533"label = "list_ptr->data [00000256bcc813f0] list_ptr->prev [00000256bcc81570] list_ptr->next [00000256bcc81510]";"node0" [ label = " <f1> number =      0 | {<f0> prev = 0 |  <f2> next  = 0 }" shape = "Mrecord", color="Pink"];
+"node1" [ label = " <f1> number =    100 | {<f0> prev = 3 |  <f2> next  = 2 }" shape = "Mrecord", color="Pink"];
+"node2" [ label = " <f1> number =    200 | {<f0> prev = 1 |  <f2> next  = 5 }" shape = "Mrecord", color="Pink"];
+"node3" [ label = " <f1> number =     50 | {<f0> prev = 0 |  <f2> next  = 1 }" shape = "Mrecord", color="Pink"];
+"node4" [ label = " <f1> number =    250 | {<f0> prev = 5 |  <f2> next  = 0 }" shape = "Mrecord", color="Pink"];
+"node5" [ label = " <f1> number =    243 | {<f0> prev = 2 |  <f2> next  = 4 }" shape = "Mrecord", color="Pink"];
+"node6" [ label = " <f1> number =      0 | {<f0> prev = -1 |  <f2> next  = 7 }" shape = "Mrecord", color="Pink"];
+"node7" [ label = " <f1> number =      0 | {<f0> prev = -1 |  <f2> next  = 8 }" shape = "Mrecord", color="Pink"];
+"node8" [ label = " <f1> number =      0 | {<f0> prev = -1 |  <f2> next  = 9 }" shape = "Mrecord", color="Pink"];
+"node9" [ label = " <f1> number =      0 | {<f0> prev = -1 |  <f2> next  = 0 }" shape = "Mrecord", color="Pink"];
+"node0":f1 -> "node1":f1 [id = 0, color="White", width = 1000];
+"node0":f2 -> "node1":f0 [id = 1, color="White", width = 1000];
+"node1":f1 -> "node2":f1 [id = 2, color="White", width = 1000];
+"node1":f2 -> "node2":f0 [id = 3, color="White", width = 1000];
+"node2":f1 -> "node3":f1 [id = 4, color="White", width = 1000];
+"node2":f2 -> "node3":f0 [id = 5, color="White", width = 1000];
+"node3":f1 -> "node4":f1 [id = 6, color="White", width = 1000];
+"node3":f2 -> "node4":f0 [id = 7, color="White", width = 1000];
+"node4":f1 -> "node5":f1 [id = 8, color="White", width = 1000];
+"node4":f2 -> "node5":f0 [id = 9, color="White", width = 1000];
+"node5":f1 -> "node6":f1 [id = 10, color="White", width = 1000];
+"node5":f2 -> "node6":f0 [id = 11, color="White", width = 1000];
+"node6":f1 -> "node7":f1 [id = 12, color="White", width = 1000];
+"node6":f2 -> "node7":f0 [id = 13, color="White", width = 1000];
+"node7":f1 -> "node8":f1 [id = 14, color="White", width = 1000];
+"node7":f2 -> "node8":f0 [id = 15, color="White", width = 1000];
+"node8":f1 -> "node9":f1 [id = 16, color="White", width = 1000];
+"node8":f2 -> "node9":f0 [id = 17, color="White", width = 1000];
+"node0":f2 -> "node0":f1 [id = 20, color="#00074D"];
+"node1":f2 -> "node2":f1 [id = 21, color="#004DC8"];
+"node2":f2 -> "node5":f1 [id = 22, color="#006443"];
+"node3":f2 -> "node1":f1 [id = 23, color="#0066BB"];
+"node4":f2 -> "node0":f1 [id = 24, color="#00428B"];
+"node5":f2 -> "node4":f1 [id = 25, color="#0026A6"];
+"node6":f2 -> "node7":f1 [id = 26, color="#00701F", style="dashed"];
+"node7":f2 -> "node8":f1 [id = 27, color="#005D03", style="dashed"];
+"node8":f2 -> "node9":f1 [id = 28, color="#007A5A", style="dashed"];
+"node9":f2 -> "node0":f1 [id = 29, color="#00767D", style="dashed"];
+"node0":f0 -> "node0":f1 [id = 30, color="#004509"];
+"node1":f0 -> "node3":f1 [id = 31, color="#001238"];
+"node2":f0 -> "node1":f1 [id = 32, color="#003B25"];
+"node3":f0 -> "node0":f1 [id = 33, color="#001E1F"];
+"node4":f0 -> "node5":f1 [id = 34, color="#006E5D"];
+"node5":f0 -> "node2":f1 [id = 35, color="#001AD4"];
+} } }

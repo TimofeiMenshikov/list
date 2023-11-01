@@ -13,6 +13,5 @@ int main()
 
 	list_dump(&list);
 
-
 	return 0;
 }
