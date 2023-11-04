@@ -91,8 +91,6 @@
 
 	err_t print_list_data(const elem_t* data, const char* data_name, const ssize_t data_size);
 
-	err_t check_transition_arr(const ssize_t* const transition, const ssize_t start_postion, const ssize_t arr_size, enum ListErrors INVALID_TRANSITION, enum ListErrors INF_CYCLE);
-
 	err_t list_increase(struct List* list_ptr);
 
 #endif /* LIST_H */

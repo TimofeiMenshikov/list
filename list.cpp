@@ -4,6 +4,18 @@
 
 #include "include/list.h"
 
+#define CHECK_INCREASE_LIST() if ((list_ptr->next)[list_ptr->free] == -1) return_code |= list_increase(list_ptr);
+
+
+err_t synchronize_tail_head_zero_element(struct List* list_ptr)
+{
+	(list_ptr->next)[0] = list_ptr->head;
+	(list_ptr->prev)[0] = list_ptr->tail;
+
+	return NO_ERROR;
+}
+
+
 err_t list_init(struct List* list_ptr, const ssize_t start_size)
 {
 	err_t return_code = NO_ERROR;
@@ -24,7 +36,7 @@ err_t list_init(struct List* list_ptr, const ssize_t start_size)
 
 	list_ptr->tail = 0;
 
-	list_ptr->free = 0;
+	list_ptr->free = -1;
 
 	for (ssize_t n_data_elem = 1; n_data_elem < list_ptr->data_size; n_data_elem++)
 	{
@@ -61,7 +73,7 @@ err_t list_dtor(struct List* list_ptr)
 }
 
 
-err_t check_transition_arr(const ssize_t* const transition, const ssize_t start_postion, const ssize_t arr_size, enum ListErrors INVALID_TRANSITION, enum ListErrors INF_CYCLE)
+static err_t check_transition_arr(const ssize_t* const transition, const ssize_t start_postion, const ssize_t arr_size, enum ListErrors INVALID_TRANSITION, enum ListErrors INF_CYCLE)
 {
 	err_t return_code = NO_ERROR;
 
@@ -101,7 +113,7 @@ err_t list_verificator(const struct List* const list_ptr)
 	if (list_ptr->next == NULL)  return_code |= INVALID_NEXT_PTR;
 	if (list_ptr->prev == NULL)  return_code |= INVALID_PREV_PTR;
 
-	if ((list_ptr->free  < 0) || (list_ptr->free >= list_ptr->data_size))
+	if ((list_ptr->free  < -1) || (list_ptr->free >= list_ptr->data_size))
 	{
 		return_code |= INVALID_FREE_VAL;
 	}
@@ -116,8 +128,8 @@ err_t list_verificator(const struct List* const list_ptr)
 		return_code |= INVALID_TAIL_VAL;
 	}
 
-	if ((list_ptr->prev)[0] != 0) return_code |= INVALID_FIRST_PREV_ELEM_VAL;
-	if ((list_ptr->next)[0] != 0) return_code |= INVALID_FIRST_NEXT_ELEM_VAL;
+	if (((list_ptr->prev)[0] < 0) || ((list_ptr->prev)[0] >= list_ptr->data_size)) return_code |= INVALID_FIRST_PREV_ELEM_VAL;
+	if (((list_ptr->next)[0] < 0) || ((list_ptr->next)[0] >= list_ptr->data_size)) return_code |= INVALID_FIRST_NEXT_ELEM_VAL;
 
 	for (ssize_t n_data_elem = 1; n_data_elem < list_ptr->data_size; n_data_elem++)
 	{
@@ -181,7 +193,6 @@ err_t print_transition_array(const ssize_t* arr, const char* arr_name, const ssi
 	putchar('\n');
 
 	printf("\t}\n");
-
 	
 	return NO_ERROR;
 }
@@ -239,21 +250,20 @@ err_t find_free_positions_list_with_cycle(struct List* list_ptr)
 {
 	CHECK_LIST();
 
-	ssize_t position = list_ptr->free;
 
-	while((list_ptr->next)[position] != 0)
-	{
-		position = list_ptr->next[position];
-	}
+
+	ssize_t new_free = -1;
+	ssize_t position = -1;
+
 
 	for (ssize_t n_data_elem = 1; n_data_elem < list_ptr->data_size; n_data_elem++)
 	{
 		if ((list_ptr->next)[n_data_elem] == -1)
 		{
 
-			if (position == 0)
+			if (position == -1)
 			{
-				list_ptr->free = n_data_elem;
+				new_free = n_data_elem;
 			}
 			else
 			{
@@ -264,7 +274,11 @@ err_t find_free_positions_list_with_cycle(struct List* list_ptr)
 		}
 	}
 
-	(list_ptr->next)[position] = 0;
+	if (new_free != -1)
+	{
+		(list_ptr->next)[position] = list_ptr->free;
+		list_ptr->free = new_free;
+	}
 
 	return return_code;
 }
@@ -296,8 +310,6 @@ err_t free_cell(struct List* list_ptr, const ssize_t position)
 		list_ptr->tail = before_position;
 	}
 
-	
-
 	(list_ptr->data)[position] = 0;
 
 	(list_ptr->next)[position] = list_ptr->free;
@@ -305,6 +317,8 @@ err_t free_cell(struct List* list_ptr, const ssize_t position)
 	(list_ptr->prev)[position] = -1;
 
 	list_ptr->free = position;
+
+	synchronize_tail_head_zero_element(list_ptr);
 
 	return return_code;
 }
@@ -331,6 +345,8 @@ static err_t set_tail_head_first_elem(struct List* list_ptr, const ssize_t posit
 	list_ptr->tail = position;
 	list_ptr->head = position;	
 
+	synchronize_tail_head_zero_element(list_ptr);
+
 	return return_code;
 }
 
@@ -339,7 +355,9 @@ err_t add_elem_in_head(struct List* list_ptr, const elem_t elem)
 {
 	CHECK_LIST();
 
-	if (list_ptr->free == 0) list_increase(list_ptr);
+	CHECK_INCREASE_LIST()
+
+	//if (list_ptr->free == 0) list_increase(list_ptr);
 
 	ssize_t position = get_free_elem_pos(list_ptr);
 
@@ -362,6 +380,8 @@ err_t add_elem_in_head(struct List* list_ptr, const elem_t elem)
 		(list_ptr->prev)[position] = 0;
 	}
 
+	synchronize_tail_head_zero_element(list_ptr);
+
 	return return_code;
 }
 
@@ -370,7 +390,9 @@ err_t add_elem_in_tail(struct List* list_ptr, const elem_t elem)
 {
 	CHECK_LIST();
 
-	if (list_ptr->free == 0) list_increase(list_ptr);
+	CHECK_INCREASE_LIST()
+
+	//if (list_ptr->free == 0) list_increase(list_ptr);
 
 	ssize_t position = get_free_elem_pos(list_ptr);
 
@@ -391,6 +413,8 @@ err_t add_elem_in_tail(struct List* list_ptr, const elem_t elem)
 		(list_ptr->next)[position] = 0;
 	}
 
+	synchronize_tail_head_zero_element(list_ptr);
+
 	return return_code;
 }
 
@@ -399,7 +423,9 @@ err_t add_elem_after_position(struct List* list_ptr, elem_t elem,  const ssize_t
 {
 	CHECK_LIST();
 
-	if (list_ptr->free == 0) list_increase(list_ptr);
+	CHECK_INCREASE_LIST()
+
+	//if (list_ptr->free == 0) list_increase(list_ptr);
 
 	if ((list_ptr->prev)[before_position] < 0)
 	{
@@ -427,8 +453,13 @@ err_t add_elem_after_position(struct List* list_ptr, elem_t elem,  const ssize_t
 	(list_ptr->prev)[after_position] = position;
 	(list_ptr->next)[position]  = after_position;
 
+	synchronize_tail_head_zero_element(list_ptr);
+
 	return return_code;
 }
+
+
+
 
 
 err_t list_increase(struct List* list_ptr)
@@ -467,19 +498,29 @@ err_t list_increase(struct List* list_ptr)
 	}
 
 	if (bad_return) return return_code;
-	 
-	
+	 	
 	for (ssize_t n_data_elem = list_ptr->data_size; n_data_elem < 2 * list_ptr->data_size; n_data_elem++)
 	{
-		(list_ptr->next)[n_data_elem] = NEXT_PREV_POISON_VALUE;
+		if (n_data_elem < 2 * list_ptr->data_size - 1)
+		{
+			(list_ptr->next)[n_data_elem] = n_data_elem + 1; // nafig to here 
+		}
+		else 
+		{
+			(list_ptr->next)[n_data_elem] = list_ptr->free;
+		}
+		
 		(list_ptr->prev)[n_data_elem] = NEXT_PREV_POISON_VALUE;
 		(list_ptr->data)[n_data_elem] = 0;
 	}
 
+	list_ptr->free = list_ptr->data_size;
+
 	list_ptr->data_size *= LIST_INCREASE_CONSTANT;
 
-	find_free_positions_list_with_cycle(list_ptr);
-
-	return return_code;
 	
+
+	//find_free_positions_list_with_cycle(list_ptr); // nafig this function call
+
+	return return_code;	
 }

@@ -5,7 +5,24 @@
 #include "include/graph.h"
 #include <stdlib.h>
 
+#define CREATE_DOT_LINE(command_string) fprintf(dot_file, "" command_string "\n");
+#define CREATE_HTML_LINE(command_string) fprintf(html_file, "" command_string "\n");
 
+#define RUN_DOT_FILE(graph_filename, dot_filename, graph_file_extension)  								\
+{																										\
+	char system_command[MAX_COMMANDNAME_SIZE] = {};														\
+	sprintf(system_command, "dot -T%s %s -o %s", graph_file_extension, dot_filename, graph_filename);	\
+	system(system_command);																				\
+}																										\
+
+
+#define RUN_HTML_FILE(graph_folder, html_filename)												\
+{																								\
+	char system_command[MAX_COMMANDNAME_SIZE] = {};												\
+	sprintf(system_command, "cd %s && %s", graph_folder, html_filename);						\
+	printf("%s", system_command);																\
+	system(system_command);																		\
+}																								\
 
 FILE* open_file(const char* const filename, const char* const modificator)
 {
@@ -58,6 +75,7 @@ err_t write_to_dot_file(struct List* list_ptr, const char* const dot_filepath)
 	fprintf(dot_file, "rankdir = \"TB\";\n");
 	fprintf(dot_file, "label = \"list variables\"");
 
+	fprintf(dot_file, "data_size [shape=\"Mrecord\", label =\"data_size = %zd\"]\n", list_ptr->data_size);
 	fprintf(dot_file, "free [shape=box3d, label=\"free = %zd\"];\n", list_ptr->free);
 	fprintf(dot_file, "head [shape=box3d, label=\"head = %zd\"];\n", list_ptr->head);
 	fprintf(dot_file, "tail [shape=box3d, label=\"tail = %zd\"];\n", list_ptr->tail);
@@ -70,22 +88,30 @@ err_t write_to_dot_file(struct List* list_ptr, const char* const dot_filepath)
 
 	for (ssize_t n_data_elem = 0; n_data_elem < list_ptr->data_size; n_data_elem++)
 	{
-		fprintf(dot_file, "\"node%zd\" [ label = \" <f1> number = " LIST_ELEM_PRINTF_SPEC " | {<f0> prev = %zd |  <f2> next  = %zd }\" shape = \"Mrecord\", color=\"Pink\"];\n", n_data_elem,   (list_ptr->data)[n_data_elem], (list_ptr->prev)[n_data_elem], (list_ptr->next)[n_data_elem]);
+		if      (n_data_elem == 0)                 fprintf(dot_file, "\"node%zd\" [ label = \" <f1> number = " LIST_ELEM_PRINTF_SPEC " | {<f0> prev = %zd | <f4> ip = %zd | <f2> next  = %zd }\" shape = \"Mrecord\", color=\"Yellow\"];\n", n_data_elem,   (list_ptr->data)[n_data_elem], (list_ptr->prev)[n_data_elem], n_data_elem, (list_ptr->next)[n_data_elem]);  
+		else if ((list_ptr->prev)[n_data_elem] == -1) fprintf(dot_file, "\"node%zd\" [ label = \" <f1> number = " LIST_ELEM_PRINTF_SPEC " | {<f0> prev = %zd | <f4> ip = %zd | <f2> next  = %zd }\" shape = \"Mrecord\", color=\"Green\"];\n", n_data_elem,   (list_ptr->data)[n_data_elem], (list_ptr->prev)[n_data_elem], n_data_elem, (list_ptr->next)[n_data_elem]);
+		else                                     fprintf(dot_file, "\"node%zd\" [ label = \" <f1> number = " LIST_ELEM_PRINTF_SPEC " | {<f0> prev = %zd | <f4> ip = %zd | <f2> next  = %zd }\" shape = \"Mrecord\", color=\"Red\"];\n", n_data_elem,   (list_ptr->data)[n_data_elem], (list_ptr->prev)[n_data_elem], n_data_elem, (list_ptr->next)[n_data_elem]); 
 	}
 
-	for (ssize_t n_data_elem = 0; n_data_elem < list_ptr->data_size - 1; n_data_elem++)
-	{		
-		fprintf(dot_file, "\"node%zd\":f1 -> \"node%zd\":f1 [id = %zd, color=\"White\", width = 1000];\n", n_data_elem, n_data_elem + 1,2 *  n_data_elem);		// невидимая стрелка связь блоков списка
-		fprintf(dot_file, "\"node%zd\":f2 -> \"node%zd\":f0 [id = %zd, color=\"White\", width = 1000];\n", n_data_elem, n_data_elem + 1, 2 * n_data_elem + 1);		// невидимая стрелка связь блоков списка		
+
+	/////////////////////////////////////////////////////////////////////////
+	fprintf(dot_file, "node0");
+
+	for (ssize_t n_data_elem = 1; n_data_elem < list_ptr->data_size; n_data_elem++)
+	{			
+		fprintf(dot_file, "->node%zd", n_data_elem);	// невидимая стрелка связь блоков списка
 	}
+
+	fprintf(dot_file, "[weight = 10000, color = \"White\"]\n");
+	//////////////////////////////////////////////////////////////////////////
 
 	for (ssize_t n_data_elem = 0; n_data_elem < list_ptr->data_size; n_data_elem++)
 	{
 		if ((list_ptr->next)[n_data_elem] >= 0)
 		{
 
-			if ((list_ptr->prev)[n_data_elem] == -1)    fprintf(dot_file, "\"node%zd\":f2 -> \"node%zd\":f1 [id = %zd, color=\"#%06X\", style=\"dashed\"];\n", n_data_elem, (list_ptr->next)[n_data_elem], 2 * list_ptr->data_size + n_data_elem, rand() % MAX_COLOR_VALUE);
-			else 										fprintf(dot_file, "\"node%zd\":f2 -> \"node%zd\":f1 [id = %zd, color=\"#%06X\"];\n", n_data_elem, (list_ptr->next)[n_data_elem], 2 * list_ptr->data_size + n_data_elem, rand() % MAX_COLOR_VALUE);
+			if ((list_ptr->prev)[n_data_elem] == -1)    fprintf(dot_file, "\"node%zd\":f2 -> \"node%zd\":f0 [id = %zd, color=\"#%06X\", style=\"dashed\", constraint = false, splines = polyline];\n", n_data_elem, (list_ptr->next)[n_data_elem], 2 * list_ptr->data_size + n_data_elem, rand() % MAX_COLOR_VALUE);
+			else 										fprintf(dot_file, "\"node%zd\":f2 -> \"node%zd\":f0 [id = %zd, color=\"#%06X\", constraint = false, splines = polyline];\n", n_data_elem, (list_ptr->next)[n_data_elem], 2 * list_ptr->data_size + n_data_elem, rand() % MAX_COLOR_VALUE);
 
 		}		
 	}
@@ -94,9 +120,12 @@ err_t write_to_dot_file(struct List* list_ptr, const char* const dot_filepath)
 	{
 		if ((list_ptr->prev)[n_data_elem] >= 0)
 		{
-			fprintf(dot_file, "\"node%zd\":f0 -> \"node%zd\":f1 [id = %zd, color=\"#%06X\"];\n", n_data_elem, (list_ptr->prev)[n_data_elem], 3 * list_ptr->data_size + n_data_elem, rand() % MAX_COLOR_VALUE);
+			fprintf(dot_file, "\"node%zd\":f0 -> \"node%zd\":f2 [id = %zd, color=\"#%06X\", constraint = false, splines = none];\n", n_data_elem, (list_ptr->prev)[n_data_elem], 3 * list_ptr->data_size + n_data_elem, rand() % MAX_COLOR_VALUE);
 		}		
 	}	
+
+
+	//fprintf(dot_file, " free -> \"node%zd\": f4 [color = \"#%06X\"]", (list_ptr->free), rand() % MAX_COLOR_VALUE);
 
 	CREATE_DOT_LINE("} } }")
 

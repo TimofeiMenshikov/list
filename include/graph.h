@@ -19,9 +19,8 @@
 		system(system_command);																		\
 	}																								\
 
-	#define CREATE_DOT_LINE(command_string) fprintf(dot_file, "" command_string "\n");
-
-	#define CREATE_HTML_LINE(command_string) fprintf(html_file, "" command_string "\n");
+	
+	
 
 	FILE* open_file(const char* const filename, const char* const modificator);
 
