@@ -1,22 +1,22 @@
 #include <stdio.h>
 #include <malloc.h>
 
-
 #include "include/list.h"
 
-#define CHECK_INCREASE_LIST() if ((list_ptr->next)[list_ptr->free] == -1) return_code |= list_increase(list_ptr);
 
+#define CHECK_INCREASE_LIST() if (list_ptr->free == -1) return_code |= list_increase(list_ptr);
 
-err_t synchronize_tail_head_zero_element(struct List* list_ptr)
-{
-	(list_ptr->next)[0] = list_ptr->head;
-	(list_ptr->prev)[0] = list_ptr->tail;
+#define CHECK_BAD_RETURN() 				\
+	if (bad_return)						\
+	{									\
+		print_list_error(return_code);	\
+		return return_code;				\
+	}									
 
-	return NO_ERROR;
-}
+#define LIST_TAIL (list_ptr->next)[0]
+#define LIST_HEAD (list_ptr->prev)[0]
 
-
-err_t list_init(struct List* list_ptr, const ssize_t start_size)
+err_t list_init(struct List* const list_ptr, const ssize_t start_size)
 {
 	err_t return_code = NO_ERROR;
 
@@ -26,17 +26,20 @@ err_t list_init(struct List* list_ptr, const ssize_t start_size)
 
 	list_ptr->next = (elem_t*) malloc(start_size * sizeof(elem_t));
 
-	(list_ptr->next)[0] = 0;
-
 	list_ptr->prev = (elem_t*) malloc(start_size * sizeof(elem_t));
 
-	(list_ptr->prev)[0] = 0;
+	LIST_HEAD = 0;
 
-	list_ptr->head = 0;
-
-	list_ptr->tail = 0;
+	LIST_TAIL = 0;
 
 	list_ptr->free = -1;
+
+	list_ptr->is_able_to_decrease = -1;
+
+	list_ptr->last_add_position = -1;
+	list_ptr->last_free_position = -1;
+
+	list_ptr->list_elem_count = 0;
 
 	for (ssize_t n_data_elem = 1; n_data_elem < list_ptr->data_size; n_data_elem++)
 	{
@@ -65,15 +68,19 @@ err_t list_dtor(struct List* list_ptr)
 	list_ptr->prev = 0;
 
 	list_ptr->data_size = -1;
-	list_ptr->tail = -1;
-	list_ptr->head = -1;
 	list_ptr->free = -1;
+
+	list_ptr->last_add_position = -1;
+	list_ptr->last_free_position = -1;
+
+	list_ptr->list_elem_count = -1;
+	list_ptr->is_able_to_decrease = -1;
 
 	return return_code;
 }
 
 
-static err_t check_transition_arr(const ssize_t* const transition, const ssize_t start_postion, const ssize_t arr_size, enum ListErrors INVALID_TRANSITION, enum ListErrors INF_CYCLE)
+static err_t check_transition_arr(const ssize_t* const transition, const ssize_t* reverse_transition,  const ssize_t start_postion, const ssize_t arr_size, const enum ListErrors INVALID_TRANSITION, const enum ListErrors INF_CYCLE)
 {
 	err_t return_code = NO_ERROR;
 
@@ -92,6 +99,12 @@ static err_t check_transition_arr(const ssize_t* const transition, const ssize_t
 		if (transition_iterations >= arr_size)
 		{
 			return_code |= INF_CYCLE;
+			return return_code;
+		}
+
+		if (reverse_transition[transition[position]] != position)
+		{
+			return_code |= INVALID_TRANSITION;
 			return return_code;
 		}
 
@@ -118,12 +131,12 @@ err_t list_verificator(const struct List* const list_ptr)
 		return_code |= INVALID_FREE_VAL;
 	}
 
-	if ((list_ptr->head  < 0) || (list_ptr->head >= list_ptr->data_size))
+	if ((LIST_HEAD  < 0) || (LIST_HEAD >= list_ptr->data_size))
 	{
 		return_code |= INVALID_HEAD_VAL;
 	}
 
-	if ((list_ptr->tail  < 0) || (list_ptr->tail >= list_ptr->data_size))
+	if ((LIST_TAIL  < 0) || (LIST_TAIL >= list_ptr->data_size))
 	{
 		return_code |= INVALID_TAIL_VAL;
 	}
@@ -131,14 +144,19 @@ err_t list_verificator(const struct List* const list_ptr)
 	if (((list_ptr->prev)[0] < 0) || ((list_ptr->prev)[0] >= list_ptr->data_size)) return_code |= INVALID_FIRST_PREV_ELEM_VAL;
 	if (((list_ptr->next)[0] < 0) || ((list_ptr->next)[0] >= list_ptr->data_size)) return_code |= INVALID_FIRST_NEXT_ELEM_VAL;
 
+	if ((list_ptr->list_elem_count >= list_ptr->data_size) || (list_ptr->list_elem_count < 0))
+	{
+		return_code |= INVALID_LIST_ELEM_COUNT;
+	}
+
 	for (ssize_t n_data_elem = 1; n_data_elem < list_ptr->data_size; n_data_elem++)
 	{
 		if ((list_ptr->next)[n_data_elem] < -1) return_code |= INVALID_NEXT_ELEM_VAL;
 		if ((list_ptr->prev)[n_data_elem] < -1) return_code |= INVALID_PREV_ELEM_VAL;
 	}	
 
-	CHECK_NEXT_ARR(list_ptr->next, list_ptr->head, list_ptr->data_size);
-	CHECK_PREV_ARR(list_ptr->prev, list_ptr->tail, list_ptr->data_size);
+	return_code |= check_transition_arr(list_ptr->next, list_ptr->prev, LIST_HEAD, list_ptr->data_size, INVALID_NEXT_TRANSITION, NEXT_INF_CYCLE);
+
 
 	return return_code;
 }
@@ -168,6 +186,18 @@ err_t print_list_error(const err_t return_code)
 	if (return_code & INVALID_NEXT_TRANSITION) fprintf(stderr, "invlaid next transition\n");
 
 	if (return_code & WRONG_BEFORE_POSITION) fprintf(stderr, "wrong before position\n");
+	if (return_code & WRONG_AFTER_POSITION)  fprintf(stderr, "wrong after position\n");
+
+	if (return_code & UNABLE_TO_FREE_ZERO_ELEMENT) fprintf(stderr, "unable to free zero element\n");
+
+	if (return_code & INVALID_POSITION_TO) fprintf(stderr, "invalid position to move list element to\n");
+	if (return_code & INVALID_POSITION_FROM) fprintf(stderr, "invalid position to move list element from\n");
+
+	if (return_code & INVALID_SWAP_POSITION) fprintf(stderr, "invalid list element position to swap\n");
+
+	if (return_code & LIST_IS_NOT_ABLE_TO_DECREASE) fprintf(stderr, "Unable to decrease list. It's not ready to realloc down\n");
+
+	if (return_code & INVALID_LIST_ELEM_COUNT) fprintf (stderr, "invalid list element count (list.list_elem_count)\n");
 
 	return return_code;
 }
@@ -231,8 +261,10 @@ err_t list_dump(const struct List* const list_ptr)
 	printf("{\n");
 	printf("\tdata size =  %zd\n", list_ptr->data_size);
 	printf("\tfree = %zd\n", list_ptr->free);
-	printf("\thead = %zd\n", list_ptr->head);
-	printf("\ttail = %zd\n", list_ptr->tail);
+	printf("\thead = %zd\n", LIST_HEAD);
+	printf("\ttail = %zd\n", LIST_TAIL);
+	printf("\tlist_elem_count = %zd\n", list_ptr->list_elem_count);
+	printf("\tis able to decrease = %d\n", list_ptr->is_able_to_decrease);
 	putchar('\n');
 	
 	PRINT_LIST_DATA(list_ptr->data, list_ptr->data_size);
@@ -246,21 +278,17 @@ err_t list_dump(const struct List* const list_ptr)
 }
 
 
-err_t find_free_positions_list_with_cycle(struct List* list_ptr)
+err_t find_free_positions_list_with_cycle(struct List* const list_ptr)
 {
 	CHECK_LIST();
 
-
-
 	ssize_t new_free = -1;
 	ssize_t position = -1;
-
 
 	for (ssize_t n_data_elem = 1; n_data_elem < list_ptr->data_size; n_data_elem++)
 	{
 		if ((list_ptr->next)[n_data_elem] == -1)
 		{
-
 			if (position == -1)
 			{
 				new_free = n_data_elem;
@@ -284,31 +312,60 @@ err_t find_free_positions_list_with_cycle(struct List* list_ptr)
 }
 
 
-err_t free_cell(struct List* list_ptr, const ssize_t position)
+err_t update_free_positions_list_with_cycle(struct List* const list_ptr)
 {
 	CHECK_LIST();
+
+	ssize_t new_free = -1;
+	ssize_t position = -1;
+
+	for (ssize_t n_data_elem = 1; n_data_elem < list_ptr->data_size; n_data_elem++)
+	{
+		if ((list_ptr->prev)[n_data_elem] == -1)
+		{
+			if (position == -1)
+			{
+				new_free = n_data_elem;
+			}
+			else
+			{
+				(list_ptr->next)[position] = n_data_elem;	
+			}
+
+			position = n_data_elem;
+		}		
+	}
+
+	if (position != -1)
+	{
+		(list_ptr->next)[position] = -1;
+	}
+	
+
+	list_ptr->free = new_free;
+
+	return return_code;
+}
+
+
+err_t free_cell(struct List* const list_ptr, const ssize_t position)
+{
+	CHECK_LIST();
+
+	if (position == 0)
+	{
+		return_code |= UNABLE_TO_FREE_ZERO_ELEMENT;
+		print_list_error(return_code);
+		return return_code;
+	}
 
 	ssize_t before_position = (list_ptr->prev)[position];
 
 	ssize_t after_position = (list_ptr->next)[position];
 
-	if (before_position != 0)
-	{
-		(list_ptr->next)[before_position] = after_position;	
-	}
-	else
-	{
-		list_ptr->head = after_position;
-	}
 
-	if (after_position != 0)
-	{
-		(list_ptr->prev)[after_position] =  before_position;
-	}
-	else
-	{
-		list_ptr->tail = before_position;
-	}
+	(list_ptr->next)[before_position] = after_position;	
+	(list_ptr->prev)[after_position] =  before_position;
 
 	(list_ptr->data)[position] = 0;
 
@@ -318,114 +375,44 @@ err_t free_cell(struct List* list_ptr, const ssize_t position)
 
 	list_ptr->free = position;
 
-	synchronize_tail_head_zero_element(list_ptr);
+	list_ptr->last_free_position = position;
+
+	(list_ptr->list_elem_count)--;
 
 	return return_code;
 }
 
 
-static ssize_t get_free_elem_pos(struct List* list_ptr)
+static ssize_t get_free_elem_pos(struct List* const list_ptr)
 {
 	CHECK_LIST();
 
 	ssize_t position = list_ptr->free;
-	list_ptr->free = list_ptr->next[list_ptr->free];
+	list_ptr->free = list_ptr->next[list_ptr->free];\
+
+	list_ptr->is_able_to_decrease = -1;
 
 	return position;
 }
 
 
-static err_t set_tail_head_first_elem(struct List* list_ptr, const ssize_t position)
+static err_t link_elem_with_neighbours(struct List* const list_ptr, const ssize_t position, const ssize_t before_position, const ssize_t after_position)
 {
-	CHECK_LIST();
+	(list_ptr->next)[before_position] = position;
+	(list_ptr->prev)[position] = before_position;
 
-	(list_ptr->next)[position] = 0;
-	(list_ptr->prev)[position] = 0;
+	(list_ptr->prev)[after_position] = position;
+	(list_ptr->next)[position]  = after_position;
 
-	list_ptr->tail = position;
-	list_ptr->head = position;	
-
-	synchronize_tail_head_zero_element(list_ptr);
-
-	return return_code;
+	return NO_ERROR;	
 }
 
 
-err_t add_elem_in_head(struct List* list_ptr, const elem_t elem)
+err_t add_elem_after_position(struct List* const list_ptr, elem_t elem,  const ssize_t before_position)
 {
 	CHECK_LIST();
 
 	CHECK_INCREASE_LIST()
-
-	//if (list_ptr->free == 0) list_increase(list_ptr);
-
-	ssize_t position = get_free_elem_pos(list_ptr);
-
-	(list_ptr->data)[position] = elem;	
-
-	if (list_ptr->head == 0)
-	{
-		set_tail_head_first_elem(list_ptr, position);
-	}
-	else
-	{
-		(list_ptr->prev)[list_ptr->head] = position;
-
-		(list_ptr->next)[position] = list_ptr->head;
-
-		list_ptr->head = position;
-
-		list_ptr->head = position;
-
-		(list_ptr->prev)[position] = 0;
-	}
-
-	synchronize_tail_head_zero_element(list_ptr);
-
-	return return_code;
-}
-
-
-err_t add_elem_in_tail(struct List* list_ptr, const elem_t elem)
-{
-	CHECK_LIST();
-
-	CHECK_INCREASE_LIST()
-
-	//if (list_ptr->free == 0) list_increase(list_ptr);
-
-	ssize_t position = get_free_elem_pos(list_ptr);
-
-	(list_ptr->data)[position] = elem;
-
-	if (list_ptr->tail == 0)
-	{
-		set_tail_head_first_elem(list_ptr, position);
-	}
-	else
-	{
-		(list_ptr->next)[list_ptr->tail] = position;
-
-		(list_ptr->prev)[position] = list_ptr->tail;
-
-		list_ptr->tail = position;
-
-		(list_ptr->next)[position] = 0;
-	}
-
-	synchronize_tail_head_zero_element(list_ptr);
-
-	return return_code;
-}
-
-
-err_t add_elem_after_position(struct List* list_ptr, elem_t elem,  const ssize_t before_position)
-{
-	CHECK_LIST();
-
-	CHECK_INCREASE_LIST()
-
-	//if (list_ptr->free == 0) list_increase(list_ptr);
 
 	if ((list_ptr->prev)[before_position] < 0)
 	{
@@ -434,39 +421,96 @@ err_t add_elem_after_position(struct List* list_ptr, elem_t elem,  const ssize_t
 
 		return return_code;
 	}
-	if (before_position == list_ptr->tail)
-	{
-		return_code |= add_elem_in_tail(list_ptr, elem);
 
-		return return_code;
-	}
-
-	ssize_t position = get_free_elem_pos(list_ptr);
+	const ssize_t position = get_free_elem_pos(list_ptr);
 
 	(list_ptr->data)[position] = elem;
 
 	const ssize_t after_position = (list_ptr->next)[before_position];
 
-	(list_ptr->next)[before_position] = position;
-	(list_ptr->prev)[position] = before_position;
+	link_elem_with_neighbours(list_ptr, position, before_position, after_position);
 
-	(list_ptr->prev)[after_position] = position;
-	(list_ptr->next)[position]  = after_position;
+	list_ptr->last_add_position = position;
 
-	synchronize_tail_head_zero_element(list_ptr);
+	(list_ptr->list_elem_count)++;
+
+	list_ptr->is_able_to_decrease = -1;
 
 	return return_code;
 }
 
 
-
-
-
-err_t list_increase(struct List* list_ptr)
+err_t add_elem_before_position(struct List* const list_ptr, elem_t elem, const ssize_t after_position)
 {
 	CHECK_LIST();
 
-	const ssize_t LIST_INCREASE_CONSTANT = 2;
+	CHECK_INCREASE_LIST()
+
+	if ((list_ptr->prev)[after_position] < 0)
+	{
+		return_code |= WRONG_AFTER_POSITION;
+		print_list_error(return_code);
+
+		return return_code;
+	}
+
+	const ssize_t position = get_free_elem_pos(list_ptr);
+
+	(list_ptr->data)[position] = elem;
+
+	const ssize_t before_position = (list_ptr->prev)[after_position];
+
+	link_elem_with_neighbours(list_ptr, position, before_position, after_position);
+
+	list_ptr->last_add_position = position;
+
+	(list_ptr->list_elem_count)++;
+
+	list_ptr->is_able_to_decrease = -1;
+
+	return return_code;
+}
+
+
+err_t add_elem_in_head(struct List* const list_ptr, const elem_t elem) 
+{
+	return add_elem_before_position(list_ptr, elem, LIST_HEAD);
+}
+err_t add_elem_in_tail(struct List* const list_ptr, const elem_t elem) 
+{
+	return	add_elem_after_position(list_ptr, elem, LIST_TAIL);
+}
+
+
+#define CHECK_BAD_REALLOC_PTRS()					\
+	bool bad_return = false;						\
+													\
+	if ((list_ptr->next) == NULL)  					\
+	{												\
+		list_ptr->next = old_next_arr;				\
+		return_code |= UNABLE_TO_INCREASE_LIST;		\
+		bad_return = true;							\
+	}												\
+	if ((list_ptr->prev) == NULL)					\
+	{												\
+		list_ptr->prev = old_prev_arr;				\
+		return_code |= UNABLE_TO_INCREASE_LIST;		\
+		bad_return = true;							\
+	}												\
+	if ((list_ptr->data) == NULL)					\
+	{												\
+		list_ptr->data = old_list_data;				\
+		return_code |= UNABLE_TO_INCREASE_LIST;		\
+		bad_return = true;							\
+	}												\
+													\
+	CHECK_BAD_RETURN()								\
+
+
+
+err_t list_increase(struct List* const list_ptr)
+{
+	CHECK_LIST();
 
 	ssize_t* old_next_arr = list_ptr->next;
 	ssize_t* old_prev_arr = list_ptr->next;
@@ -476,34 +520,13 @@ err_t list_increase(struct List* list_ptr)
 	list_ptr->prev = (ssize_t*) realloc(list_ptr->prev, LIST_INCREASE_CONSTANT * sizeof(ssize_t) * list_ptr->data_size);
 	list_ptr->data = (elem_t*)  realloc(list_ptr->data, LIST_INCREASE_CONSTANT * sizeof(elem_t)  * list_ptr->data_size);  
 
-	bool bad_return = false;
-
-	if ((list_ptr->next) == NULL)  
-	{
-		list_ptr->next = old_next_arr;
-		return_code |= UNABLE_TO_INCREASE_LIST;
-		bad_return = true;
-	}
-	if ((list_ptr->prev) == NULL)
-	{
-		list_ptr->prev = old_prev_arr;
-		return_code |= UNABLE_TO_INCREASE_LIST;
-		bad_return = true;
-	}
-	if ((list_ptr->data) == NULL)
-	{
-		list_ptr->data = old_list_data;
-		return_code |= UNABLE_TO_INCREASE_LIST;
-		bad_return = true;
-	}
-
-	if (bad_return) return return_code;
+	CHECK_BAD_REALLOC_PTRS()
 	 	
 	for (ssize_t n_data_elem = list_ptr->data_size; n_data_elem < 2 * list_ptr->data_size; n_data_elem++)
 	{
 		if (n_data_elem < 2 * list_ptr->data_size - 1)
 		{
-			(list_ptr->next)[n_data_elem] = n_data_elem + 1; // nafig to here 
+			(list_ptr->next)[n_data_elem] = n_data_elem + 1; 
 		}
 		else 
 		{
@@ -518,9 +541,222 @@ err_t list_increase(struct List* list_ptr)
 
 	list_ptr->data_size *= LIST_INCREASE_CONSTANT;
 
-	
-
-	//find_free_positions_list_with_cycle(list_ptr); // nafig this function call
-
 	return return_code;	
+}
+
+
+err_t move_elem(struct List* const list_ptr, const ssize_t position_from, const ssize_t position_to)
+{
+	CHECK_LIST();
+
+	bool bad_return = false;
+
+	if ((position_to < 0) || (position_to >= list_ptr->data_size)) 
+	{
+		return_code |= INVALID_POSITION_TO;
+		bad_return = true;
+	}
+
+	if ((position_from < 0) || (position_from >= list_ptr->data_size))
+	{
+		return_code |= INVALID_POSITION_FROM;
+		bad_return = true;
+	}
+
+	if ((list_ptr->prev)[position_from] == -1)
+	{
+		return_code |= UNABLE_TO_MOVE_FREE_ELEMENT;
+		bad_return = true;
+	}
+
+	if ((list_ptr->prev)[position_to] != -1)
+	{
+		return_code |= UNABLE_TO_MOVE_TO_BUSY_ELEMENT_POSITION;
+		bad_return = true;
+	}
+
+	CHECK_BAD_RETURN()
+
+	(list_ptr->next)[position_to] = (list_ptr->next)[position_from];
+	(list_ptr->prev)[position_to] = (list_ptr->prev)[position_from];
+
+	(list_ptr->next)[(list_ptr->prev)[position_from]] = position_to;
+	(list_ptr->prev)[(list_ptr->next)[position_from]] = position_to;
+
+	(list_ptr->data)[position_to] = (list_ptr->data)[position_from];
+
+	(list_ptr->data)[position_from] = 0;
+	(list_ptr->next)[position_from] = NEXT_PREV_POISON_VALUE;
+	(list_ptr->prev)[position_from] = NEXT_PREV_POISON_VALUE;
+
+	if (position_to != list_ptr->free)  
+	{
+		update_free_positions_list_with_cycle(list_ptr);
+	}
+	else 
+	{
+		list_ptr->free = position_from;
+	}
+
+	list_ptr->is_able_to_decrease = -1;
+	
+	return return_code;
+}
+
+
+err_t swap_two_elements(struct List* const list_ptr, const ssize_t position1, const ssize_t position2)  // нужен хотя бы один свободный элемент
+{
+	CHECK_LIST();
+
+	bool bad_return = false;
+
+	if ((position1 < 0) || (position1 >= list_ptr->data_size)) 
+	{
+		return_code |= INVALID_SWAP_POSITION;
+		bad_return = true;
+	}
+
+	if ((position2 < 0) || (position2 >= list_ptr->data_size))
+	{
+		return_code |= INVALID_SWAP_POSITION;
+		bad_return = true;
+	}
+
+	if ((list_ptr->free) == -1)
+	{
+		return_code |= NO_FREE_ELEMENTS_CANT_SWAP;
+		bad_return = true;
+	}
+
+	CHECK_BAD_RETURN()
+
+	ssize_t prev_free = list_ptr->free;
+
+	move_elem(list_ptr, position1, list_ptr->free);
+
+	move_elem(list_ptr, position2, position1);
+
+	move_elem(list_ptr, prev_free, position2);
+
+	return return_code;
+}
+
+
+err_t group_elements(struct List* const list_ptr)  
+{
+	CHECK_LIST();
+
+	for (ssize_t position1 = 1; position1 < list_ptr->data_size; position1++)
+	{
+		for (ssize_t position2 = position1 + 1; position2 < list_ptr->data_size; position2++)
+		{
+			if (((list_ptr->prev)[position2] != -1) && ((list_ptr->prev)[position1] == -1))
+			{
+				move_elem(list_ptr, position2, position1);
+			}
+		}
+	}
+
+	list_ptr->is_able_to_decrease = -1;
+
+	return return_code;
+}
+
+
+err_t check_list_able_to_decrease(struct List* const list_ptr)
+{
+	CHECK_LIST();
+
+	if (list_ptr->list_elem_count + 1 > list_ptr->data_size / LIST_DECREASE_CONSTANT)
+	{
+		list_ptr->is_able_to_decrease = false;
+		return return_code;
+	}
+
+	for (ssize_t n_data_elem = (list_ptr->data_size) / LIST_DECREASE_CONSTANT; n_data_elem < list_ptr->data_size; n_data_elem++)
+	{
+		if ((list_ptr->prev)[n_data_elem] != -1)
+		{
+			list_ptr->is_able_to_decrease = false;
+			return return_code;
+		}
+	}
+
+	list_ptr->is_able_to_decrease = true;
+
+	return return_code;
+}
+
+
+#define CHECK_ABLE_TO_DECREASE_PARAMETER()		\
+if (list_ptr->is_able_to_decrease == false)		\
+{												\
+	return_code |= LIST_IS_NOT_ABLE_TO_DECREASE;\
+	return return_code;							\
+}
+
+
+err_t list_decrease(struct List* const list_ptr)
+{
+	CHECK_LIST();
+
+	CHECK_ABLE_TO_DECREASE_PARAMETER()
+
+	if (list_ptr->is_able_to_decrease == -1)
+	{
+		return_code |= check_list_able_to_decrease(list_ptr);
+
+		CHECK_ABLE_TO_DECREASE_PARAMETER()
+	}
+
+	ssize_t* old_next_arr = list_ptr->next;
+	ssize_t* old_prev_arr = list_ptr->next;
+	elem_t*  old_list_data = list_ptr->data;
+
+	list_ptr->next = (ssize_t*) realloc(list_ptr->next,  sizeof(ssize_t) * (list_ptr->data_size / LIST_DECREASE_CONSTANT));
+	list_ptr->prev = (ssize_t*) realloc(list_ptr->prev,  sizeof(ssize_t) * (list_ptr->data_size / LIST_DECREASE_CONSTANT));
+	list_ptr->data = (elem_t*)  realloc(list_ptr->data,  sizeof(elem_t)  * (list_ptr->data_size / LIST_DECREASE_CONSTANT));  
+
+	CHECK_BAD_REALLOC_PTRS()
+
+	list_ptr->free = -1;
+
+	list_ptr->data_size /= LIST_DECREASE_CONSTANT;
+
+	update_free_positions_list_with_cycle(list_ptr);
+
+	list_ptr->is_able_to_decrease = -1;
+
+	return return_code;
+}
+
+
+err_t straighten_list_transitions(struct List* const list_ptr)
+{
+	CHECK_LIST();
+
+	ssize_t position = 0;
+
+	ssize_t position2 = 0;
+
+	while ((list_ptr->next)[position] != 0)
+	{
+		position2 = (list_ptr->next)[position];
+		while ((list_ptr->next)[position2] != 0)
+		{
+			if (position2 < position)
+			{
+				swap_two_elements(list_ptr, position, position2);
+				ssize_t temp = position;
+				position = position2;
+				position2 = temp;
+			} 
+
+			position2 = (list_ptr->next)[position2];
+		}
+
+		position = (list_ptr->next)[position];
+	}
+
+	return return_code;
 }

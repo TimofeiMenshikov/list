@@ -9,6 +9,8 @@ int main()
 {
 	struct List list;
 
+	printf("hello world\n");
+
 	list_init(&list, START_SIZE);
 
 	list_dump(&list);

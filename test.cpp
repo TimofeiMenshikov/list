@@ -8,11 +8,6 @@
 #include <assert.h>
 
 
-
-
-
-
-
 #define START_TEST()      																\
 	err_t return_code = NO_ERROR;														\
 																						\
@@ -42,54 +37,50 @@
 #define IFRUN_TEST(func, ...) if (strcmp(argv[test_number], #func) == 0) func(__VA_ARGS__)
 
 
-char* get_filename(char* const filepath)
-{
-	ssize_t char_number = 0;
-
-	ssize_t last_slash_pos = -1;
-
-	while (filepath[char_number] != '\0')
-	{
-		if ((filepath[char_number] == '/') || (filepath[char_number] == '\\'))
-		{
-			last_slash_pos = char_number;
-		}
-	}
-
-	char* filename = filepath + 1 + last_slash_pos;
-
-	return filename;
-}
-
-
-
 static err_t test_list_1()
 {
 	START_TEST()
 
 	
 
-	return_code |= add_elem_in_tail(&list, 100);
+	return_code |= add_elem_after_position(&list, 100, 0);
 
 	return_code |= list_dump(&list);
 
 	CREATE_ONE_GRAPH()
 
 
-	return_code |= add_elem_in_tail(&list, 200);
+	return_code |= add_elem_after_position(&list, 200, 1);
 
 	return_code |= list_dump(&list);
 
 	CREATE_ONE_GRAPH()
+
+
 
 	
 
-	return_code |= add_elem_in_head(&list, 50);
+	return_code |= add_elem_before_position(&list, 50, 1);
 
 	return_code |= list_dump(&list);
 
 	CREATE_ONE_GRAPH()
 
+	/*ssize_t prev_free = list.free;
+
+	move_elem(&list, 2, list.free);
+
+	CREATE_ONE_GRAPH()
+
+	move_elem(&list, 3, 2);
+
+	CREATE_ONE_GRAPH()
+
+	move_elem(&list, prev_free, 3);*/
+
+	swap_two_elements(&list, 3, 2);
+
+	CREATE_ONE_GRAPH()
 
 	return_code |= add_elem_after_position(&list, 250, 2);
 
@@ -101,7 +92,24 @@ static err_t test_list_1()
 
 	return_code |= list_dump(&list);
 
+
+
+	return_code |= free_cell(&list, 2);
+
+	return_code |= list_dump(&list);
+
+	
 	CREATE_ONE_GRAPH()
+
+	return_code |= group_elements(&list);
+
+	CREATE_ONE_GRAPH()
+
+	return_code |= list_decrease(&list);
+
+	CREATE_ONE_GRAPH()
+
+
 
 	return_code |= list_dtor(&list);
 
@@ -133,7 +141,7 @@ static err_t test_cycle_error()
 {
 	START_TEST()
 
-	list.head = 1;
+	//list.head = 1;
 	list.next[1] = 2;
 	list.next[2] = 1;
 
@@ -149,9 +157,9 @@ static err_t test_free_list()
 {
 	START_TEST()
 
-	list.head = 2;
+	//list.head = 2;
 
-	list.tail = 3;
+	//list.tail = 3;
 
 	(list.data)[1] = 8;
 
@@ -190,41 +198,13 @@ static err_t test_free_list()
 
 	printf("____________________________________________________________________\n");
 
-	FILE* dot_file = open_file(dot_filepath, "w"); 
-
 	return NO_ERROR;
 }
-
-
-#define test_graph(dot_filepath, graph_file_extension, graph_filepath, html_filepath, graph_folder, graph_filename)		\
-{																							\
-	struct List list;																		\
-																							\
-	list_init(&list, START_SIZE);															\
-																							\
-	write_to_dot_file(&list, dot_filepath);													\
-																							\
-																							\
-																							\
-	RUN_DOT_FILE(graph_filepath, dot_filepath, graph_file_extension)						\
-																							\
-	write_to_html_file(&list, html_filepath, graph_filepath);								\
-																							\
-																							\
-	system("cd " graph_folder " && " graph_filename "");									\
-																							\
-	list_dump(&list);																		\
-																							\
-}																							\
 
 
 
 #define test_graph_with_for()																\
 	START_TEST();																			\
-																							\
-																							\
-																							\
-																							\
 	for (ssize_t number = 0; number < 1; number++)											\
 	{																						\
 		CREATE_ONE_GRAPH()																	\
@@ -234,27 +214,12 @@ static err_t test_free_list()
 
 	
 
-
-
-
 int main(int argc, char* argv[])
 {
-	/*for (int test_number = 1; test_number < argc; test_number++)
+	for (int test_number = 1; test_number < argc; test_number++)
 	{
 		IFRUN_TEST(test_list_1);
 		IFRUN_TEST(test_cycle_error);
 		IFRUN_TEST(test_free_list);
-		IFRUN_TEST(test_graph, "graph/test.dot", "png", "graph/graph1.png", "graph/graph.html", "graph", "graph.html")	
-	}*/
-
-
-
-
-	test_list_1();
-
-	//test_increase_list();
-
-	//test_graph_with_for();
-
-	//test_graph("graph/test.dot", "png", "graph/graph1.png", "graph/graph.html")
+	}
 }

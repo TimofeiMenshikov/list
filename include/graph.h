@@ -10,7 +10,6 @@
 		system(system_command);																				\
 	}																										\
 
-
 	#define RUN_HTML_FILE(graph_folder, html_filename)												\
 	{																								\
 		char system_command[MAX_COMMANDNAME_SIZE] = {};												\
@@ -19,17 +18,12 @@
 		system(system_command);																		\
 	}																								\
 
-	
-	
-
 	FILE* open_file(const char* const filename, const char* const modificator);
 
-	err_t create_one_graph(struct List* list_ptr, ssize_t* graph_number_ptr, char *  graph_filepath, const char * const dot_filepath, const char* const graph_file_extension, FILE*  html_file);
+	err_t create_one_graph(struct List* list_ptr, ssize_t* graph_number_ptr, char* graph_filepath, FILE*  html_file);
 
-	#define CREATE_ONE_GRAPH() create_one_graph(&list, &number, graph_filepath, dot_filepath, graph_file_extension, html_file);	
+	#define CREATE_ONE_GRAPH() create_one_graph(&list, &number, graph_filepath, html_file);	
 	
-															
-
 	const ssize_t MAX_FILENAME_SIZE = 1000;
 	const ssize_t MAX_COMMANDNAME_SIZE = 1000;
 

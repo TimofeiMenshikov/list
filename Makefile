@@ -3,7 +3,7 @@ CXX = g++
 
 TEST = True
 
-TEST_NAME = test_graph
+TEST_NAME = test_list_1
 
 OBJDIR = object_files
 
