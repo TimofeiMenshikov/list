@@ -3,7 +3,6 @@
 
 #include "include/list.h"
 
-
 #define CHECK_INCREASE_LIST() if (list_ptr->free == -1) return_code |= list_increase(list_ptr);
 
 #define CHECK_BAD_RETURN() 				\
@@ -80,7 +79,7 @@ err_t list_dtor(struct List* list_ptr)
 }
 
 
-static err_t check_transition_arr(const ssize_t* const transition, const ssize_t* reverse_transition,  const ssize_t start_postion, const ssize_t arr_size, const enum ListErrors INVALID_TRANSITION, const enum ListErrors INF_CYCLE)
+static err_t check_transition_arr(const ssize_t* const transition, const ssize_t* reverse_transition,  const ssize_t start_postion, const ssize_t arr_size, const enum ListErrors invalid_transition, const enum ListErrors inf_cycle)
 {
 	err_t return_code = NO_ERROR;
 
@@ -92,19 +91,19 @@ static err_t check_transition_arr(const ssize_t* const transition, const ssize_t
 	{
 		if ((transition[position] < 0) || transition[position] >= arr_size)
 		{
-			return_code |= INVALID_TRANSITION;
+			return_code |= invalid_transition;
 			return return_code;
 		}
 
 		if (transition_iterations >= arr_size)
 		{
-			return_code |= INF_CYCLE;
+			return_code |= inf_cycle;
 			return return_code;
 		}
 
 		if (reverse_transition[transition[position]] != position)
 		{
-			return_code |= INVALID_TRANSITION;
+			return_code |= invalid_transition;
 			return return_code;
 		}
 
@@ -439,43 +438,16 @@ err_t add_elem_after_position(struct List* const list_ptr, elem_t elem,  const s
 	return return_code;
 }
 
-
 err_t add_elem_before_position(struct List* const list_ptr, elem_t elem, const ssize_t after_position)
 {
-	CHECK_LIST();
-
-	CHECK_INCREASE_LIST()
-
-	if ((list_ptr->prev)[after_position] < 0)
-	{
-		return_code |= WRONG_AFTER_POSITION;
-		print_list_error(return_code);
-
-		return return_code;
-	}
-
-	const ssize_t position = get_free_elem_pos(list_ptr);
-
-	(list_ptr->data)[position] = elem;
-
-	const ssize_t before_position = (list_ptr->prev)[after_position];
-
-	link_elem_with_neighbours(list_ptr, position, before_position, after_position);
-
-	list_ptr->last_add_position = position;
-
-	(list_ptr->list_elem_count)++;
-
-	list_ptr->is_able_to_decrease = -1;
-
-	return return_code;
+	return add_elem_after_position(list_ptr, elem, (list_ptr->prev)[after_position]);
 }
-
 
 err_t add_elem_in_head(struct List* const list_ptr, const elem_t elem) 
 {
 	return add_elem_before_position(list_ptr, elem, LIST_HEAD);
 }
+
 err_t add_elem_in_tail(struct List* const list_ptr, const elem_t elem) 
 {
 	return	add_elem_after_position(list_ptr, elem, LIST_TAIL);
@@ -608,6 +580,11 @@ err_t swap_two_elements(struct List* const list_ptr, const ssize_t position1, co
 {
 	CHECK_LIST();
 
+	if (position1 == position2)
+	{
+		return return_code;
+	}
+
 	bool bad_return = false;
 
 	if ((position1 < 0) || (position1 >= list_ptr->data_size)) 
@@ -735,27 +712,29 @@ err_t straighten_list_transitions(struct List* const list_ptr)
 {
 	CHECK_LIST();
 
-	ssize_t position = 0;
+	ssize_t arr_position = 1;
 
-	ssize_t position2 = 0;
+	ssize_t list_position = LIST_HEAD;
 
-	while ((list_ptr->next)[position] != 0)
+	for (arr_position = 1; arr_position < list_ptr->data_size; arr_position++)
 	{
-		position2 = (list_ptr->next)[position];
-		while ((list_ptr->next)[position2] != 0)
+		if (list_position == 0)
 		{
-			if (position2 < position)
-			{
-				swap_two_elements(list_ptr, position, position2);
-				ssize_t temp = position;
-				position = position2;
-				position2 = temp;
-			} 
-
-			position2 = (list_ptr->next)[position2];
+			break;
 		}
 
-		position = (list_ptr->next)[position];
+		ssize_t next_list_position = (list_ptr->next)[list_position];
+
+		if ((list_ptr->prev)[arr_position] == -1)
+		{
+			move_elem(list_ptr, list_position, arr_position);	
+		}
+		else 
+		{
+			swap_two_elements(list_ptr, list_position, arr_position);
+		}
+
+		list_position = next_list_position;
 	}
 
 	return return_code;

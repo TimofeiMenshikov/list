@@ -2,14 +2,14 @@ digraph G {
 rankdir = "LR";
 graph [splines=ortho];
 subgraph cluster0 {
-label = "struct List list [000000ee237ffd40]";fontname="Helvetica,Arial,sans-serif";
+label = "struct List list [0000002f86fff780]";fontname="Helvetica,Arial,sans-serif";
 node [fontname="Helvetica,Arial,sans-serif" fontsize = "16" ];
 edge [fontname="Helvetica,Arial,sans-serif"];
 subgraph cluster1 {
 rankdir = "TB";
 label = "list variables"data_size [shape="Mrecord", label ="data_size = 5"]
 free [shape=box3d, label="free = -1"];
-head [shape=box3d, label="head = 2"];
+head [shape=box3d, label="head = 1"];
 tail [shape=box3d, label="tail = 4"];
 list_elem_count [shape=box3d, label="list elem count = 4"];
 is_able_to_decrease[shape= box3d, label = "is able to decrease = not verified"];
@@ -17,15 +17,15 @@ last_add_position[shape=box3d, label="last add position = 5"];
 last_free_position [shape=box3d, label="last free position = 2"];
 }
 subgraph cluster2 {
-color = "#AA5533"label = "list_ptr->data [0000027ea0f713f0] list_ptr->prev [0000027ea0f71570] list_ptr->next [0000027ea0f71510]";"node0" [ label = " <f1>  number =      0\n\n | {<f0>  prev = 2 \n\n | <f4> data_index = 0 \n\n | <f2> next  = 4 \n\n }" shape = "Mrecord", color="Yellow"];
-"node1" [ label = " <f1> number =    100\n\n | {<f0>  prev = 3 \n\n | <f4> data_index = 1 \n\n | <f2> next  = 2 \n\n }" shape = "Mrecord", color="Red"];
-"node2" [ label = " <f1> number =    200\n\n | {<f0>  prev = 1 \n\n | <f4> data_index = 2 \n\n | <f2> next  = 0 \n\n }" shape = "Mrecord", color="Red"];
-"node3" [ label = " <f1> number =    250\n\n | {<f0>  prev = 4 \n\n | <f4> data_index = 3 \n\n | <f2> next  = 1 \n\n }" shape = "Mrecord", color="Red"];
+color = "#AA5533"label = "list_ptr->data [00000186d37013f0] list_ptr->prev [00000186d3701570] list_ptr->next [00000186d3701510]";"node0" [ label = " <f1>  number =      0\n\n | {<f0>  prev = 1 \n\n | <f4> data_index = 0 \n\n | <f2> next  = 4 \n\n }" shape = "Mrecord", color="Yellow"];
+"node1" [ label = " <f1> number =    200\n\n | {<f0>  prev = 2 \n\n | <f4> data_index = 1 \n\n | <f2> next  = 0 \n\n }" shape = "Mrecord", color="Red"];
+"node2" [ label = " <f1> number =    100\n\n | {<f0>  prev = 3 \n\n | <f4> data_index = 2 \n\n | <f2> next  = 1 \n\n }" shape = "Mrecord", color="Red"];
+"node3" [ label = " <f1> number =    250\n\n | {<f0>  prev = 4 \n\n | <f4> data_index = 3 \n\n | <f2> next  = 2 \n\n }" shape = "Mrecord", color="Red"];
 "node4" [ label = " <f1> number =    243\n\n | {<f0>  prev = 0 \n\n | <f4> data_index = 4 \n\n | <f2> next  = 3 \n\n }" shape = "Mrecord", color="Red"];
 node0->node1->node2->node3->node4[weight = 10000, color = "White"]
-"node0":f2 -> "node4":f0 [id = 10, color="#00428B", constraint = false, splines = polyline];
-"node1":f2 -> "node2":f0 [id = 11, color="#0026A6", constraint = false, splines = polyline];
-"node2":f2 -> "node0":f0 [id = 12, color="#00701F", constraint = false, splines = polyline];
-"node3":f2 -> "node1":f0 [id = 13, color="#005D03", constraint = false, splines = polyline];
-"node4":f2 -> "node3":f0 [id = 14, color="#007A5A", constraint = false, splines = polyline];
+"node0":f2 -> "node4":f0 [id = 10, color="#003B25", constraint = false, splines = polyline];
+"node1":f2 -> "node0":f0 [id = 11, color="#001E1F", constraint = false, splines = polyline];
+"node2":f2 -> "node1":f0 [id = 12, color="#006E5D", constraint = false, splines = polyline];
+"node3":f2 -> "node2":f0 [id = 13, color="#001AD4", constraint = false, splines = polyline];
+"node4":f2 -> "node3":f0 [id = 14, color="#0063CB", constraint = false, splines = polyline];
 } } }

@@ -105,6 +105,10 @@ static err_t test_list_1()
 
 	CREATE_ONE_GRAPH()
 
+	return_code |= straighten_list_transitions(&list);
+
+	CREATE_ONE_GRAPH()
+
 	return_code |= list_decrease(&list);
 
 	CREATE_ONE_GRAPH()
